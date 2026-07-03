@@ -16,10 +16,9 @@ server:
             - /test-resources
           url: https://ui5.sap.com
         backend:
-          - path: /S4_PRINCIPAL_PROPAGATION
+          - path: /s4
             pathPrefix: /
             url: http://g4d-basic.sap.ariaspa.local:44300
-            destination: S4_PRINCIPAL_PROPAGATION
     - name: fiori-tools-appreload
       afterMiddleware: compression
       configuration:
