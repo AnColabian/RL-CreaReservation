@@ -27,15 +27,6 @@
           }
         }
       }
-    },
-    "dataSources": {
-      "mainService": {
-        "uri": "/s4/sap/opu/odata/sap/ZMM_ASSEGNAZIONE_BUDGET",
-        "type": "OData",
-        "settings": {
-          "odataVersion": "2.0"
-        }
-      }
     }
   },
   "sap.ui": {
@@ -68,18 +59,6 @@
       "cozy": true
     },
     "models": {
-      "": {
-        "dataSource": "mainService",
-        "settings": {
-          "defaultOperationMode": "Server",
-          "defaultBindingMode": "TwoWay",
-          "defaultCountMode": "None",
-          "earlyRequests": true,
-          "useBatch": false,
-          "json": true
-        },
-        "preload": true
-      },
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
         "settings": {

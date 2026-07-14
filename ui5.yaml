@@ -19,6 +19,7 @@ server:
           - path: /s4
             pathPrefix: /
             url: http://g4d-basic.sap.ariaspa.local:44300
+            client: "115"
     - name: fiori-tools-appreload
       afterMiddleware: compression
       configuration:
