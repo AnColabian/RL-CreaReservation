@@ -3,7 +3,7 @@ sap.ui.define([
 ], (Controller) => {
     "use strict";
 
-    return Controller.extend("rlcreatereservations.controller.View1", {
+    return Controller.extend("rlcreatereservations.controller.Worklist", {
         onInit() {
         }
     });
