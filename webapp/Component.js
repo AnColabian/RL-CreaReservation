@@ -1,25 +1,18 @@
 sap.ui.define([
     "sap/ui/core/UIComponent",
-    "rlcreatereservations/model/models"
-], (UIComponent, models) => {
+    "sap/ui/Device",
+    "./model/models"
+], function (UIComponent, Device, models) {
     "use strict";
-
     return UIComponent.extend("rlcreatereservations.Component", {
         metadata: {
-            manifest: "json",
-            interfaces: [
-                "sap.ui.core.IAsyncContentCreation"
-            ]
+            manifest: "json"
         },
-
-        init() {
-            // call the base component's init function
+        init: function () {
             UIComponent.prototype.init.apply(this, arguments);
-
-            // set the device model
             this.setModel(models.createDeviceModel(), "device");
-
-            // enable routing
+            this.setModel(models.createReservationModel(), "reservationModel");
+            this.setModel(models.createViewModel(), "viewModel");
             this.getRouter().initialize();
         }
     });

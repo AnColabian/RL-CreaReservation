@@ -82,6 +82,30 @@ sap.ui.define([], function () {
                 return "";
             }
             return parseInt(sMatnr, 10).toString();
+        },
+                formatRequesterLabel: function (sName, sCode) {
+            if (sName && sCode) {
+                return sName + " (" + sCode + ")";
+            }
+            return sName || sCode || "";
+        },
+        formatLevelStatus: function (sApprFlag, sRejFlag, sUser, sDate) {
+            if (sApprFlag === "X") {
+                return "Approvato da " + (sUser || "") + " il " + this.formatAbapDate(sDate || "");
+            }
+            if (sRejFlag === "X") {
+                return "Rifiutato da " + (sUser || "") + " il " + this.formatAbapDate(sDate || "");
+            }
+            return "In attesa";
+        },
+        formatLevelState: function (sApprFlag, sRejFlag) {
+            if (sApprFlag === "X") {
+                return "Success";
+            }
+            if (sRejFlag === "X") {
+                return "Error";
+            }
+            return "Warning";
         }
     };
 });
