@@ -1,6 +1,6 @@
 sap.ui.define([], function () {
     "use strict";
-    return {
+    var formatter = {
         formatAbapDate: function (sDate) {
             if (!sDate || sDate.length !== 8) {
                 return "";
@@ -18,18 +18,17 @@ sap.ui.define([], function () {
             return sCurrency ? sFormatted + " " + sCurrency : sFormatted;
         },
         formatStatusText: function (sStatus) {
-            var oBundle = this.getOwnerComponent().getModel("i18n").getResourceBundle();
             switch (sStatus) {
-                case "PENDING":      return oBundle.getText("statusPending");
-                case "APPROVED_L1": return oBundle.getText("statusApprovedL1");
-                case "APPROVED_L2": return oBundle.getText("statusApprovedL2");
-                case "REJECTED":    return oBundle.getText("statusRejected");
+                case "PENDING":     return "In attesa";
+                case "APPROVED_L1": return "Approvato I liv.";
+                case "APPROVED_L2": return "Approvato";
+                case "REJECTED":    return "Rifiutato";
                 default:            return sStatus || "";
             }
         },
         formatStatusState: function (sStatus) {
             switch (sStatus) {
-                case "PENDING":      return "Warning";
+                case "PENDING":     return "Warning";
                 case "APPROVED_L1": return "Information";
                 case "APPROVED_L2": return "Success";
                 case "REJECTED":    return "Error";
@@ -83,7 +82,7 @@ sap.ui.define([], function () {
             }
             return parseInt(sMatnr, 10).toString();
         },
-                formatRequesterLabel: function (sName, sCode) {
+        formatRequesterLabel: function (sName, sCode) {
             if (sName && sCode) {
                 return sName + " (" + sCode + ")";
             }
@@ -91,10 +90,10 @@ sap.ui.define([], function () {
         },
         formatLevelStatus: function (sApprFlag, sRejFlag, sUser, sDate) {
             if (sApprFlag === "X") {
-                return "Approvato da " + (sUser || "") + " il " + this.formatAbapDate(sDate || "");
+                return "Approvato da " + (sUser || "") + " il " + formatter.formatAbapDate(sDate || "");
             }
             if (sRejFlag === "X") {
-                return "Rifiutato da " + (sUser || "") + " il " + this.formatAbapDate(sDate || "");
+                return "Rifiutato da " + (sUser || "") + " il " + formatter.formatAbapDate(sDate || "");
             }
             return "In attesa";
         },
@@ -108,4 +107,5 @@ sap.ui.define([], function () {
             return "Warning";
         }
     };
+    return formatter;
 });

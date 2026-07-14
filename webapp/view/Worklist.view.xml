@@ -1,75 +1,105 @@
 <mvc:View controllerName="rlcreatereservations.controller.Worklist"
     xmlns:mvc="sap.ui.core.mvc"
     xmlns="sap.m"
+    xmlns:f="sap.f"
     xmlns:l="sap.ui.layout"
     xmlns:core="sap.ui.core" displayBlock="true">
-    <Page id="worklistPage" title="{i18n>worklistTitle}" showNavButton="false">
-        <subHeader>
-            <Toolbar id="filterToolbar">
-                <Label text="{i18n>lblGjahr}" />
-                <Input id="filterGjahr" value="{viewModel>/filterGjahr}" placeholder="es. 2026" width="6rem" maxLength="4" liveChange=".onFilterLiveChange" />
-                <Label text="{i18n>lblCostCenter}" />
-                <Input id="filterKostl" value="{viewModel>/filterKostl}" placeholder="CdC" width="8rem" liveChange=".onFilterLiveChange" />
-                <Label text="{i18n>lblStatus}" />
-                <Select id="filterStatus" selectedKey="{viewModel>/filterStatus}" change=".onFilterLiveChange">
-                    <core:Item key="" text="{i18n>filterAll}" />
-                    <core:Item key="PENDING" text="{i18n>statusPending}" />
-                    <core:Item key="APPROVED_L1" text="{i18n>statusApprovedL1}" />
-                    <core:Item key="APPROVED_L2" text="{i18n>statusApprovedL2}" />
-                    <core:Item key="REJECTED" text="{i18n>statusRejected}" />
-                </Select>
-                <Label text="{i18n>lblApprovalLevel}" />
-                <Select id="filterLevel" selectedKey="{viewModel>/filterLevel}" change=".onFilterLiveChange">
-                    <core:Item key="" text="{i18n>filterAll}" />
-                    <core:Item key="L1" text="{i18n>levelL1}" />
-                    <core:Item key="L2" text="{i18n>levelL2}" />
-                </Select>
-                <Label text="{i18n>lblRsnum}" />
-                <Input id="filterRsnum" value="{viewModel>/filterRsnum}" placeholder="N° Reservation" width="10rem" liveChange=".onFilterLiveChange" />
-                <ToolbarSpacer />
-                <Button text="{i18n>resetBtn}" icon="sap-icon://clear-filter" press=".onResetFilters" />
-            </Toolbar>
-        </subHeader>
-        <content>
+    <f:DynamicPage id="pageWorklist" toggleHeaderOnTitleClick="false">
+        <f:title>
+            <f:DynamicPageTitle>
+                <f:heading>
+                    <Title text="{i18n>worklistTitle}" />
+                </f:heading>
+            </f:DynamicPageTitle>
+        </f:title>
+        <f:header>
+            <f:DynamicPageHeader pinnable="true">
+                <f:content>
+                    <l:HorizontalLayout allowWrapping="true">
+                        <l:content>
+                            <HBox alignItems="End" wrap="Wrap">
+                                <VBox class="sapUiSmallMarginEnd sapUiSmallMarginBottom">
+                                    <Label text="{i18n>lblGjahr}" labelFor="inpFilterGjahr" />
+                                    <Input id="inpFilterGjahr" value="{viewModel>/filterGjahr}" placeholder="es. 2026" width="7rem" maxLength="4" />
+                                </VBox>
+                                <VBox class="sapUiSmallMarginEnd sapUiSmallMarginBottom">
+                                    <Label text="{i18n>lblCostCenter}" labelFor="inpFilterKostl" />
+                                    <Input id="inpFilterKostl" value="{viewModel>/filterKostl}" placeholder="CdC" width="9rem" />
+                                </VBox>
+                                <VBox class="sapUiSmallMarginEnd sapUiSmallMarginBottom">
+                                    <Label text="{i18n>lblRsnum}" labelFor="inpFilterRsnum" />
+                                    <Input id="inpFilterRsnum" value="{viewModel>/filterRsnum}" placeholder="N° Reservation" width="11rem" />
+                                </VBox>
+                                <VBox class="sapUiSmallMarginEnd sapUiSmallMarginBottom">
+                                    <Label text="{i18n>lblStatus}" labelFor="selFilterStatus" />
+                                    <Select id="selFilterStatus" selectedKey="{viewModel>/filterStatus}" width="11rem">
+                                        <core:Item key="" text="{i18n>filterAll}" />
+                                        <core:Item key="PENDING" text="{i18n>statusPending}" />
+                                        <core:Item key="APPROVED_L1" text="{i18n>statusApprovedL1}" />
+                                        <core:Item key="APPROVED_L2" text="{i18n>statusApprovedL2}" />
+                                        <core:Item key="REJECTED" text="{i18n>statusRejected}" />
+                                    </Select>
+                                </VBox>
+                                <VBox class="sapUiSmallMarginEnd sapUiSmallMarginBottom">
+                                    <Label text="{i18n>lblApprovalLevel}" labelFor="selFilterLevel" />
+                                    <Select id="selFilterLevel" selectedKey="{viewModel>/filterLevel}" width="11rem">
+                                        <core:Item key="" text="{i18n>filterAll}" />
+                                        <core:Item key="L1" text="{i18n>levelL1}" />
+                                        <core:Item key="L2" text="{i18n>levelL2}" />
+                                    </Select>
+                                </VBox>
+                                <VBox justifyContent="End" class="sapUiSmallMarginBottom">
+                                    <HBox>
+                                        <Button text="{i18n>searchBtn}" type="Emphasized" press=".onFilterLiveChange" class="sapUiSmallMarginEnd" />
+                                        <Button text="{i18n>resetBtn}" icon="sap-icon://clear-filter" press=".onResetFilters" />
+                                    </HBox>
+                                </VBox>
+                            </HBox>
+                        </l:content>
+                    </l:HorizontalLayout>
+                </f:content>
+            </f:DynamicPageHeader>
+        </f:header>
+        <f:content>
             <Table id="worklistTable" items="{
                     path: 'reservationModel>/reservations',
                     sorter: {
                         path: 'RequestDate',
                         descending: true
                     }
-                }" mode="SingleSelectMaster" selectionChange=".onSelectionChange" noDataText="Nessuna reservation trovata." busyIndicatorDelay="0" busy="{viewModel>/busy}">
+                }" mode="SingleSelectMaster" selectionChange=".onSelectionChange" noDataText="Nessuna reservation trovata." busyIndicatorDelay="0" busy="{viewModel>/busy}" growing="false">
                 <headerToolbar>
                     <Toolbar>
                         <Title text="{i18n>worklistTitle}" level="H3" />
                         <ToolbarSpacer />
-                        <Button id="approveBtn" text="{i18n>approveBtn}" icon="sap-icon://accept" type="Accept" press=".onApprove" enabled="{viewModel>/approveEnabled}" />
-                        <Button id="rejectBtn" text="{i18n>rejectBtn}" icon="sap-icon://decline" type="Reject" press=".onReject" enabled="{viewModel>/rejectEnabled}" />
-                        <Button id="detailBtn" text="{i18n>detailBtn}" icon="sap-icon://detail-view" press=".onNavToDetail" enabled="{viewModel>/detailEnabled}" />
-                    </Toolbar>
+                        <Button text="{i18n>approveBtn}" icon="sap-icon://accept" type="Accept" press=".onApprove" enabled="{viewModel>/approveEnabled}" />
+                        <Button text="{i18n>rejectBtn}" icon="sap-icon://decline" type="Reject" press=".onReject" enabled="{viewModel>/rejectEnabled}" />
+                <!--         <Button text="{i18n>detailBtn}" icon="sap-icon://detail-view" press=".onNavToDetail" enabled="{viewModel>/detailEnabled}" />
+                 -->    </Toolbar>
                 </headerToolbar>
                 <columns>
-                    <Column width="9rem">
+                    <Column minScreenWidth="Small" demandPopin="false">
                         <Text text="{i18n>lblReservation}" />
                     </Column>
-                    <Column>
+                    <Column minScreenWidth="Small" demandPopin="false">
                         <Text text="{i18n>lblCostCenter}" />
                     </Column>
-                    <Column width="8rem">
+                    <Column minScreenWidth="Tablet" demandPopin="true">
                         <Text text="{i18n>lblRequestDate}" />
                     </Column>
-                    <Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true">
                         <Text text="{i18n>lblRequester}" />
                     </Column>
-                    <Column width="9rem" hAlign="End">
+                    <Column hAlign="End" minScreenWidth="Tablet" demandPopin="true">
                         <Text text="{i18n>lblEstimatedAmount}" />
                     </Column>
-                    <Column width="9rem">
+                    <Column minScreenWidth="Desktop" demandPopin="true">
                         <Text text="{i18n>lblApprovalLevel}" />
                     </Column>
-                    <Column width="9rem">
+                    <Column minScreenWidth="Small" demandPopin="false">
                         <Text text="{i18n>lblStatus}" />
                     </Column>
-                    <Column>
+                    <Column minScreenWidth="Desktop" demandPopin="true">
                         <Text text="{i18n>lblExpectedApprover}" />
                     </Column>
                 </columns>
@@ -106,6 +136,6 @@
                     </ColumnListItem>
                 </items>
             </Table>
-        </content>
-    </Page>
+        </f:content>
+    </f:DynamicPage>
 </mvc:View>

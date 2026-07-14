@@ -1,31 +1,43 @@
 <mvc:View controllerName="rlcreatereservations.controller.Detail"
     xmlns:mvc="sap.ui.core.mvc"
     xmlns="sap.m"
+    xmlns:f="sap.f"
     xmlns:l="sap.ui.layout"
-    xmlns:f="sap.ui.layout.form"
+    xmlns:form="sap.ui.layout.form"
     xmlns:core="sap.ui.core" displayBlock="true">
-    <Page id="detailPage" title="{i18n>detailTitle}" showNavButton="true" navButtonPress=".onNavBack" busy="{viewModel>/busy}" busyIndicatorDelay="0">
-        <footer>
-            <Toolbar>
-                <ToolbarSpacer />
-                <Button text="{i18n>approveBtn}" icon="sap-icon://accept" type="Accept" press=".onApprove" visible="{
-                        parts: [
-                            {path: 'detailModel>/Status'},
-                            {path: 'detailModel>/ApprovalLevel'}
-                        ],
-                        formatter: '.formatter.formatApproveButtonVisible'
-                    }" />
-                <Button text="{i18n>rejectBtn}" icon="sap-icon://decline" type="Reject" press=".onReject" visible="{
-                        path: 'detailModel>/Status',
-                        formatter: '.formatter.formatRejectButtonVisible'
-                    }" />
-            </Toolbar>
-        </footer>
-        <content>
-            <Panel id="panelHeader" headerText="{i18n>lblHeaderData}" expandable="false" class="sapUiResponsiveMargin">
-                <content>
-                    <f:SimpleForm editable="false" layout="ResponsiveGridLayout" labelSpanL="4" labelSpanM="4" emptySpanL="0" emptySpanM="0" columnsL="2" columnsM="2">
-                        <f:content>
+    <f:DynamicPage id="pageDetail" toggleHeaderOnTitleClick="true" busy="{viewModel>/busy}" busyIndicatorDelay="0">
+        <f:title>
+            <f:DynamicPageTitle>
+                <f:navigationActions>
+                    <Button icon="sap-icon://nav-back" press=".onNavBack" tooltip="{i18n>backBtn}" />
+                </f:navigationActions>
+                <f:heading>
+                    <Title text="{i18n>detailTitle}" />
+                </f:heading>
+                <f:actions>
+                    <Button text="{i18n>approveBtn}" icon="sap-icon://accept" type="Accept" press=".onApprove" visible="{
+                            parts: [
+                                {path: 'detailModel>/Status'},
+                                {path: 'detailModel>/ApprovalLevel'}
+                            ],
+                            formatter: '.formatter.formatApproveButtonVisible'
+                        }" />
+                    <Button text="{i18n>rejectBtn}" icon="sap-icon://decline" type="Reject" press=".onReject" visible="{
+                            path: 'detailModel>/Status',
+                            formatter: '.formatter.formatRejectButtonVisible'
+                        }" />
+                </f:actions>
+                <f:snappedContent>
+                    <Text text="{detailModel>/Rsnum}" />
+                </f:snappedContent>
+            </f:DynamicPageTitle>
+        </f:title>
+        <f:header>
+            <f:DynamicPageHeader pinnable="true">
+                <f:content>
+                    <form:SimpleForm editable="false" layout="ResponsiveGridLayout" labelSpanXL="4" labelSpanL="4" labelSpanM="4" labelSpanS="12" columnsXL="2" columnsL="2" columnsM="1">
+                        <form:content>
+                            <core:Title text="{i18n>lblHeaderData}" />
                             <Label text="{i18n>lblRsnum}" />
                             <Text text="{detailModel>/Rsnum}" />
                             <Label text="{i18n>lblGjahr}" />
@@ -35,19 +47,19 @@
                                 path: 'detailModel>/CreationDate',
                                 formatter: '.formatter.formatAbapDate'
                             }" />
-                            <Label text="{i18n>lblRequester}" />
-                            <Text text="{
-                                parts: [
-                                    {path: 'detailModel>/RequesterName'},
-                                    {path: 'detailModel>/Requester'}
-                                ],
-                                formatter: '.formatter.formatRequesterLabel'
-                            }" />
                             <Label text="{i18n>lblCostCenter}" />
                             <Text text="{
                                 parts: [
                                     {path: 'detailModel>/Kostl'},
                                     {path: 'detailModel>/KostlDesc'}
+                                ],
+                                formatter: '.formatter.formatRequesterLabel'
+                            }" />
+                            <Label text="{i18n>lblRequester}" />
+                            <Text text="{
+                                parts: [
+                                    {path: 'detailModel>/RequesterName'},
+                                    {path: 'detailModel>/Requester'}
                                 ],
                                 formatter: '.formatter.formatRequesterLabel'
                             }" />
@@ -59,21 +71,9 @@
                                     path: 'detailModel>/Status',
                                     formatter: '.formatter.formatStatusState'
                                 }" />
-                            <Label text="{i18n>lblApprovalLevel}" />
-                            <Text text="{
-                                path: 'detailModel>/ApprovalLevel',
-                                formatter: '.formatter.formatApprovalLevelText'
-                            }" />
                             <Label text="{i18n>lblExpectedApprover}" />
                             <Text text="{detailModel>/ExpectedApprover}" />
-                        </f:content>
-                    </f:SimpleForm>
-                </content>
-            </Panel>
-            <Panel id="panelBudget" headerText="{i18n>lblBudgetResidual}" expandable="false" class="sapUiResponsiveMargin">
-                <content>
-                    <f:SimpleForm editable="false" layout="ResponsiveGridLayout" labelSpanL="4" labelSpanM="4" emptySpanL="0" emptySpanM="0" columnsL="2" columnsM="2">
-                        <f:content>
+                            <core:Title text="{i18n>lblBudgetResidual}" />
                             <Label text="{i18n>lblEstimatedAmount}" />
                             <ObjectStatus text="{
                                     parts: [
@@ -102,14 +102,7 @@
                                     ],
                                     formatter: '.formatter.formatBudgetWarningState'
                                 }" />
-                        </f:content>
-                    </f:SimpleForm>
-                </content>
-            </Panel>
-            <Panel id="panelApprovalStatus" headerText="{i18n>lblApprovalStatus}" expandable="false" class="sapUiResponsiveMargin">
-                <content>
-                    <f:SimpleForm editable="false" layout="ResponsiveGridLayout" labelSpanL="4" labelSpanM="4" emptySpanL="0" emptySpanM="0" columnsL="2" columnsM="2">
-                        <f:content>
+                            <core:Title text="{i18n>lblApprovalStatus}" />
                             <Label text="{i18n>lblLevel1}" />
                             <ObjectStatus text="{
                                     parts: [
@@ -146,65 +139,68 @@
                                 }" />
                             <Label text="{i18n>lblRejectedBy}" visible="{= ${detailModel>/RejectionL2Flag} === 'X'}" />
                             <Text text="{detailModel>/RejectionL2Reason}" visible="{= ${detailModel>/RejectionL2Flag} === 'X'}" />
-                        </f:content>
-                    </f:SimpleForm>
-                </content>
-            </Panel>
-            <Panel id="panelItems" headerText="{i18n>lblItems}" expandable="false" class="sapUiResponsiveMargin">
-                <content>
-                    <Table id="itemsTable" items="{detailModel>/Items}" noDataText="Nessuna posizione." alternateRowColors="true">
-                        <columns>
-                            <Column width="9rem">
-                                <Text text="{i18n>lblMaterial}" />
-                            </Column>
-                            <Column>
-                                <Text text="{i18n>lblDescription}" />
-                            </Column>
-                            <Column width="6rem">
-                                <Text text="{i18n>lblDivision}" />
-                            </Column>
-                            <Column width="6rem">
-                                <Text text="{i18n>lblWarehouse}" />
-                            </Column>
-                            <Column width="6rem" hAlign="End">
-                                <Text text="{i18n>lblQuantity}" />
-                            </Column>
-                            <Column width="8rem" hAlign="End">
-                                <Text text="{i18n>lblMovingAveragePrice}" />
-                            </Column>
-                            <Column width="9rem" hAlign="End">
-                                <Text text="{i18n>lblEstimatedValue}" />
-                            </Column>
-                            <Column width="5rem" hAlign="Center">
-                                <Text text="{i18n>lblDeletionFlag}" />
-                            </Column>
-                        </columns>
-                        <items>
-                            <ColumnListItem>
-                                <cells>
-                                    <Text text="{
-                                        path: 'detailModel>Matnr',
-                                        formatter: '.formatter.formatMatnr'
-                                    }" />
-                                    <Text text="{detailModel>MatnrDesc}" />
-                                    <Text text="{detailModel>Werks}" />
-                                    <Text text="{detailModel>Lgort}" />
-                                    <ObjectNumber number="{detailModel>Erfmg}" unit="{detailModel>Erfme}" textAlign="End" />
-                                    <ObjectNumber number="{detailModel>Verpr}" unit="{detailModel>../Currency}" textAlign="End" />
-                                    <ObjectNumber number="{detailModel>EstimatedValue}" unit="{detailModel>../Currency}" textAlign="End" />
-                                    <ObjectStatus text="{
-                                            path: 'detailModel>DeletionFlag',
-                                            formatter: '.formatter.formatDeletionFlag'
-                                        }" state="{
-                                            path: 'detailModel>DeletionFlag',
-                                            formatter: '.formatter.formatDeletionFlagState'
-                                        }" />
-                                </cells>
-                            </ColumnListItem>
-                        </items>
-                    </Table>
-                </content>
-            </Panel>
-        </content>
-    </Page>
+                        </form:content>
+                    </form:SimpleForm>
+                </f:content>
+            </f:DynamicPageHeader>
+        </f:header>
+        <f:content>
+            <Table id="itemsTable" items="{detailModel>/Items}" noDataText="Nessuna posizione." busyIndicatorDelay="0" growing="false" alternateRowColors="true">
+                <headerToolbar>
+                    <Toolbar>
+                        <Title text="{i18n>lblItems}" level="H3" />
+                    </Toolbar>
+                </headerToolbar>
+                <columns>
+                    <Column minScreenWidth="Small" demandPopin="false">
+                        <Text text="{i18n>lblMaterial}" />
+                    </Column>
+                    <Column minScreenWidth="Small" demandPopin="false">
+                        <Text text="{i18n>lblDescription}" />
+                    </Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="{i18n>lblDivision}" />
+                    </Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="{i18n>lblWarehouse}" />
+                    </Column>
+                    <Column hAlign="End" minScreenWidth="Small" demandPopin="false">
+                        <Text text="{i18n>lblQuantity}" />
+                    </Column>
+                    <Column hAlign="End" minScreenWidth="Desktop" demandPopin="true">
+                        <Text text="{i18n>lblMovingAveragePrice}" />
+                    </Column>
+                    <Column hAlign="End" minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="{i18n>lblEstimatedValue}" />
+                    </Column>
+                    <Column hAlign="Center" minScreenWidth="Small" demandPopin="false">
+                        <Text text="{i18n>lblDeletionFlag}" />
+                    </Column>
+                </columns>
+                <items>
+                    <ColumnListItem type="Inactive">
+                        <cells>
+                            <Text text="{
+                                path: 'detailModel>Matnr',
+                                formatter: '.formatter.formatMatnr'
+                            }" />
+                            <Text text="{detailModel>MatnrDesc}" />
+                            <Text text="{detailModel>Werks}" />
+                            <Text text="{detailModel>Lgort}" />
+                            <ObjectNumber number="{detailModel>Erfmg}" unit="{detailModel>Erfme}" textAlign="End" />
+                            <ObjectNumber number="{detailModel>Verpr}" unit="EUR" textAlign="End" />
+                            <ObjectNumber number="{detailModel>EstimatedValue}" unit="EUR" textAlign="End" />
+                            <ObjectStatus text="{
+                                    path: 'detailModel>DeletionFlag',
+                                    formatter: '.formatter.formatDeletionFlag'
+                                }" state="{
+                                    path: 'detailModel>DeletionFlag',
+                                    formatter: '.formatter.formatDeletionFlagState'
+                                }" />
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </f:content>
+    </f:DynamicPage>
 </mvc:View>
