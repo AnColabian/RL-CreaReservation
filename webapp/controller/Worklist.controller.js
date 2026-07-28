@@ -4,11 +4,13 @@ sap.ui.define([
     "sap/m/MessageToast",
     "sap/ui/model/Filter",
     "sap/ui/model/FilterOperator",
-    "../model/formatter"
-], function (Controller, MessageBox, MessageToast, Filter, FilterOperator, formatter) {
+    "../model/formatter",
+    "../model/backendReservation"
+], function (Controller, MessageBox, MessageToast, Filter, FilterOperator, formatter, backendReservation) {
     "use strict";
     return Controller.extend("rlcreatereservations.controller.Worklist", {
         formatter: formatter,
+        backendReservation: backendReservation,
         onInit: function () {
             var oComponent = this.getOwnerComponent();
             var oReservationModel = oComponent.getModel("reservationModel");
@@ -25,6 +27,32 @@ sap.ui.define([
             oComponent.getRouter()
                 .getRoute("RouteWorklist")
                 .attachPatternMatched(this._onRouteMatched, this);
+            this._loadBackendStatus();
+        },
+        _loadBackendStatus: function () {
+            var oComponent = this.getOwnerComponent();
+            var oODataModel = oComponent.getModel();
+            var oReservationModel = oComponent.getModel("reservationModel");
+            if (!oODataModel) {
+                return;
+            }
+            backendReservation.readBackendStatus(
+                oODataModel,
+                function (aBackendEntries) {
+                    var aReservations = oReservationModel.getProperty("/reservations");
+                    aBackendEntries.forEach(function (oEntry) {
+                        var oFound = aReservations.find(function (r) {
+                            return r.Rsnum === oEntry.N_RICH;
+                        });
+                        if (oFound) {
+                            backendReservation.mergeEntry(oFound, oEntry);
+                        }
+                    });
+                    oReservationModel.setProperty("/reservations", aReservations);
+                },
+                function () {
+                }
+            );
         },
         _onRouteMatched: function () {
             this._resetActionButtons();

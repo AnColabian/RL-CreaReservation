@@ -20,6 +20,9 @@ server:
             pathPrefix: /
             url: http://g4d-basic.sap.ariaspa.local:44300
             client: "115"
+          - path: /sap/opu/odata
+            destination: S4_PRINCIPAL_PROPAGATION
+            scp: true
     - name: fiori-tools-appreload
       afterMiddleware: compression
       configuration:

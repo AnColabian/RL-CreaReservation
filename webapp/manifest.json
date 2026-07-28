@@ -15,6 +15,16 @@
       "version": "1.27.0",
       "toolsId": "796503c5-43f3-41d1-a95a-5b7547f8b812"
     },
+    "dataSources": {
+      "mainService": {
+        "uri": "/sap/opu/odata/sap/ZMM_GEST_RESERVATION_SRV/",
+        "type": "OData",
+        "settings": {
+          "odataVersion": "2.0",
+          "localUri": "metadata/metadata.xml"
+        }
+      }
+    },
     "crossNavigation": {
       "inbounds": {
         "RL_Crea_Reservation-display": {
@@ -61,6 +71,14 @@
       "cozy": true
     },
     "models": {
+      "": {
+        "dataSource": "mainService",
+        "preload": true,
+        "settings": {
+          "useBatch": false,
+          "refreshAfterChange": false
+        }
+      },
       "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
         "settings": {
@@ -91,12 +109,16 @@
         {
           "name": "RouteWorklist",
           "pattern": "",
-          "target": ["TargetWorklist"]
+          "target": [
+            "TargetWorklist"
+          ]
         },
         {
           "name": "RouteDetail",
           "pattern": "detail/{Reservation}",
-          "target": ["TargetDetail"]
+          "target": [
+            "TargetDetail"
+          ]
         }
       ],
       "targets": {

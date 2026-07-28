@@ -3,8 +3,9 @@ sap.ui.define([
     "sap/ui/model/json/JSONModel",
     "sap/m/MessageBox",
     "sap/m/MessageToast",
-    "../model/formatter"
-], function (Controller, JSONModel, MessageBox, MessageToast, formatter) {
+    "../model/formatter",
+    "../model/backendReservation"
+], function (Controller, JSONModel, MessageBox, MessageToast, formatter, backendReservation) {
     "use strict";
     return Controller.extend("rlcreatereservations.controller.Detail", {
         formatter: formatter,
@@ -34,6 +35,29 @@ sap.ui.define([
             this.getView().setModel(oDetailModel, "detailModel");
             this.getView().setModel(oViewModel, "viewModel");
             oViewModel.setProperty("/busy", false);
+            this._loadBackendStatus(sRsnum);
+        },
+        _loadBackendStatus: function (sRsnum) {
+            var oODataModel = this.getOwnerComponent().getModel();
+            var oDetailModel = this.getView().getModel("detailModel");
+            if (!oODataModel) {
+                return;
+            }
+            backendReservation.readBackendStatus(
+                oODataModel,
+                function (aBackendEntries) {
+                    var oEntry = aBackendEntries.find(function (e) {
+                        return e.N_RICH === sRsnum;
+                    });
+                    if (oEntry) {
+                        var oData = oDetailModel.getData();
+                        backendReservation.mergeEntry(oData, oEntry);
+                        oDetailModel.setData(oData);
+                    }
+                },
+                function () {
+                }
+            );
         },
         onNavBack: function () {
             this.getOwnerComponent().getRouter().navTo("RouteWorklist", {}, true);
