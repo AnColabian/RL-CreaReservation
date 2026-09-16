@@ -24,40 +24,17 @@ sap.ui.define([
             var oReservationModel = this.getOwnerComponent().getModel("reservationModel");
             var aReservations = oReservationModel.getProperty("/reservations");
             var oFound = aReservations.find(function (r) {
-                return r.Rsnum === sRsnum;
+                return r.N_RICH === sRsnum;
             });
             if (!oFound) {
                 oViewModel.setProperty("/busy", false);
-                MessageBox.error("Reservation " + sRsnum + " non trovata.");
+                MessageBox.error(this._i18n("msgReservationNotFound", [sRsnum]));
                 return;
             }
             var oDetailModel = new JSONModel(JSON.parse(JSON.stringify(oFound)));
             this.getView().setModel(oDetailModel, "detailModel");
             this.getView().setModel(oViewModel, "viewModel");
             oViewModel.setProperty("/busy", false);
-            this._loadBackendStatus(sRsnum);
-        },
-        _loadBackendStatus: function (sRsnum) {
-            var oODataModel = this.getOwnerComponent().getModel();
-            var oDetailModel = this.getView().getModel("detailModel");
-            if (!oODataModel) {
-                return;
-            }
-            backendReservation.readBackendStatus(
-                oODataModel,
-                function (aBackendEntries) {
-                    var oEntry = aBackendEntries.find(function (e) {
-                        return e.N_RICH === sRsnum;
-                    });
-                    if (oEntry) {
-                        var oData = oDetailModel.getData();
-                        backendReservation.mergeEntry(oData, oEntry);
-                        oDetailModel.setData(oData);
-                    }
-                },
-                function () {
-                }
-            );
         },
         onNavBack: function () {
             this.getOwnerComponent().getRouter().navTo("RouteWorklist", {}, true);
@@ -66,7 +43,7 @@ sap.ui.define([
             var oDetailModel = this.getView().getModel("detailModel");
             var oData = oDetailModel.getData();
             MessageBox.confirm(
-                this._i18n("msgApproveConfirmText", [oData.Rsnum]),
+                this._i18n("msgApproveConfirmText", [oData.N_RICH]),
                 {
                     title: this._i18n("msgApproveConfirmTitle"),
                     onClose: function (sAction) {
@@ -78,32 +55,22 @@ sap.ui.define([
             );
         },
         _executeApprove: function (oData) {
-            var oReservationModel = this.getOwnerComponent().getModel("reservationModel");
-            var aReservations = oReservationModel.getProperty("/reservations");
-            var iIdx = aReservations.findIndex(function (r) {
-                return r.Rsnum === oData.Rsnum;
+            var oODataModel = this.getOwnerComponent().getModel();
+            var oViewModel = this.getOwnerComponent().getModel("viewModel");
+            var sNewStato = oData.STATO === "PEND_1" ? "APPR_1" : "APPR_2";
+            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oData.N_RICH });
+            oViewModel.setProperty("/busy", true);
+            oODataModel.update(sPath, { N_RICH: oData.N_RICH, STATO: sNewStato }, {
+                success: function () {
+                    oViewModel.setProperty("/busy", false);
+                    MessageToast.show(this._i18n("msgApproveSuccess", [oData.N_RICH]));
+                    this.onNavBack();
+                }.bind(this),
+                error: function (oError) {
+                    oViewModel.setProperty("/busy", false);
+                    MessageBox.error(this._extractErrorMessage(oError));
+                }.bind(this)
             });
-            if (iIdx === -1) {
-                return;
-            }
-            var oRes = aReservations[iIdx];
-            if (oRes.Status === "PENDING") {
-                oRes.ApprovalL1Flag = "X";
-                oRes.ApprovalL1User = "CURRENTUSER";
-                oRes.ApprovalL1Date = this._todayAbap();
-                oRes.Status = "APPROVED_L1";
-                oRes.ApprovalLevel = "L2";
-            } else if (oRes.Status === "APPROVED_L1") {
-                oRes.ApprovalL2Flag = "X";
-                oRes.ApprovalL2User = "CURRENTUSER";
-                oRes.ApprovalL2Date = this._todayAbap();
-                oRes.Status = "APPROVED_L2";
-                oRes.ApprovalLevel = "";
-                oRes.ExpectedApprover = "";
-            }
-            oReservationModel.setProperty("/reservations/" + iIdx, oRes);
-            this._loadDetail(oData.Rsnum);
-            MessageToast.show(this._i18n("msgApproveSuccess", [oData.Rsnum]));
         },
         onReject: function () {
             this._openRejectDialog();
@@ -136,7 +103,7 @@ sap.ui.define([
                 oViewModel.setProperty("/rejectReasonValueStateText", this._i18n("msgRejectReasonMandatory"));
                 return;
             }
-            if (sReason.length > 50) {
+            if (sReason.length > 120) {
                 oViewModel.setProperty("/rejectReasonValueState", "Error");
                 oViewModel.setProperty("/rejectReasonValueStateText", this._i18n("msgRejectReasonMaxLength"));
                 return;
@@ -146,36 +113,28 @@ sap.ui.define([
             this._oRejectDialog.close();
         },
         _executeReject: function (oData, sReason) {
-            var oReservationModel = this.getOwnerComponent().getModel("reservationModel");
-            var aReservations = oReservationModel.getProperty("/reservations");
-            var iIdx = aReservations.findIndex(function (r) {
-                return r.Rsnum === oData.Rsnum;
-            });
-            if (iIdx === -1) {
-                return;
+            var oODataModel = this.getOwnerComponent().getModel();
+            var oViewModel = this.getOwnerComponent().getModel("viewModel");
+            var sNewStato = oData.STATO === "PEND_1" ? "RIF_1" : "RIF_2";
+            var oPayload = { N_RICH: oData.N_RICH, STATO: sNewStato };
+            if (oData.STATO === "PEND_1") {
+                oPayload.MOTIVO_RIF = sReason;
+            } else if (oData.STATO === "APPR_1") {
+                oPayload.MOTIVO_RIF_II = sReason;
             }
-            var oRes = aReservations[iIdx];
-            if (oRes.Status === "PENDING") {
-                oRes.RejectionL1Flag = "X";
-                oRes.RejectionL1Reason = sReason;
-                oRes.ApprovalL1Date = this._todayAbap();
-                oRes.ApprovalL1User = "CURRENTUSER";
-            } else if (oRes.Status === "APPROVED_L1") {
-                oRes.RejectionL2Flag = "X";
-                oRes.RejectionL2Reason = sReason;
-                oRes.ApprovalL2Date = this._todayAbap();
-                oRes.ApprovalL2User = "CURRENTUSER";
-            }
-            oRes.Status = "REJECTED";
-            oRes.ApprovalLevel = "";
-            oRes.ExpectedApprover = "";
-            oRes.Items = oRes.Items.map(function (oItem) {
-                oItem.DeletionFlag = "X";
-                return oItem;
+            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oData.N_RICH });
+            oViewModel.setProperty("/busy", true);
+            oODataModel.update(sPath, oPayload, {
+                success: function () {
+                    oViewModel.setProperty("/busy", false);
+                    MessageToast.show(this._i18n("msgRejectSuccess", [oData.N_RICH]));
+                    this.onNavBack();
+                }.bind(this),
+                error: function (oError) {
+                    oViewModel.setProperty("/busy", false);
+                    MessageBox.error(this._extractErrorMessage(oError));
+                }.bind(this)
             });
-            oReservationModel.setProperty("/reservations/" + iIdx, oRes);
-            this._loadDetail(oData.Rsnum);
-            MessageToast.show(this._i18n("msgRejectSuccess", [oData.Rsnum]));
         },
         onCancelReject: function () {
             this._oRejectDialog.close();
@@ -186,12 +145,13 @@ sap.ui.define([
                 .getResourceBundle()
                 .getText(sKey, aParams);
         },
-        _todayAbap: function () {
-            var d = new Date();
-            var sY = d.getFullYear().toString();
-            var sM = String(d.getMonth() + 1).padStart(2, "0");
-            var sD = String(d.getDate()).padStart(2, "0");
-            return sY + sM + sD;
+        _extractErrorMessage: function (oError) {
+            try {
+                var oBody = JSON.parse(oError.responseText);
+                return oBody.error.message.value;
+            } catch (e) {
+                return this._i18n("msgGenericError");
+            }
         }
     });
 });

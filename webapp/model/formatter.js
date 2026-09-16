@@ -17,29 +17,12 @@ sap.ui.define([], function () {
             });
             return sCurrency ? sFormatted + " " + sCurrency : sFormatted;
         },
-        formatStatusText: function (sStatus) {
-            switch (sStatus) {
-                case "PENDING":     return "In attesa";
-                case "APPROVED_L1": return "Approvato I liv.";
-                case "APPROVED_L2": return "Approvato";
-                case "REJECTED":    return "Rifiutato";
-                default:            return sStatus || "";
-            }
-        },
-        formatStatusState: function (sStatus) {
-            switch (sStatus) {
-                case "PENDING":     return "Warning";
-                case "APPROVED_L1": return "Information";
-                case "APPROVED_L2": return "Success";
-                case "REJECTED":    return "Error";
-                default:            return "None";
-            }
-        },
+
         formatApprovalLevelText: function (sLevel) {
             switch (sLevel) {
                 case "L1": return "I Livello (UO)";
                 case "L2": return "II Livello (DG)";
-                default:   return "";
+                default: return "";
             }
         },
         formatDeletionFlag: function (sFlag) {
@@ -61,20 +44,31 @@ sap.ui.define([], function () {
             }
             return "Success";
         },
-        formatApproveButtonVisible: function (sStatus, sLevel) {
-            if (sStatus === "REJECTED" || sStatus === "APPROVED_L2") {
-                return false;
+        formatStatusText: function (sStatus) {
+            switch (sStatus) {
+                case "PEND_1": return "In attesa";
+                case "APPR_1": return "Approvato I liv.";
+                case "APPR_2": return "Approvato";
+                case "RIF_1": return "Rifiutato I liv.";
+                case "RIF_2": return "Rifiutato II liv.";
+                default: return sStatus || "";
             }
-            if (sStatus === "PENDING" && sLevel === "L1") {
-                return true;
+        },
+        formatStatusState: function (sStatus) {
+            switch (sStatus) {
+                case "PEND_1": return "Warning";
+                case "APPR_1": return "Information";
+                case "APPR_2": return "Success";
+                case "RIF_1": return "Error";
+                case "RIF_2": return "Error";
+                default: return "None";
             }
-            if (sStatus === "APPROVED_L1" && sLevel === "L2") {
-                return true;
-            }
-            return false;
+        },
+        formatApproveButtonVisible: function (sStatus) {
+            return sStatus === "PEND_1" || sStatus === "APPR_1";
         },
         formatRejectButtonVisible: function (sStatus) {
-            return sStatus !== "REJECTED" && sStatus !== "APPROVED_L2";
+            return sStatus === "PEND_1" || sStatus === "APPR_1";
         },
         formatMatnr: function (sMatnr) {
             if (!sMatnr) {
@@ -105,6 +99,16 @@ sap.ui.define([], function () {
                 return "Error";
             }
             return "Warning";
+        },
+        formatIsoDate: function (sDate) {
+            if (!sDate || sDate.indexOf("0000-00-00") === 0) {
+                return "";
+            }
+            var aParts = sDate.split("-");
+            if (aParts.length !== 3) {
+                return sDate;
+            }
+            return aParts[2] + "/" + aParts[1] + "/" + aParts[0];
         }
     };
     return formatter;

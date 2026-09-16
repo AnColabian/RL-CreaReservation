@@ -5,18 +5,15 @@ sap.ui.define([
     "sap/ui/model/Filter",
     "sap/ui/model/FilterOperator",
     "../model/formatter",
-    "../model/backendReservation"
-], function (Controller, MessageBox, MessageToast, Filter, FilterOperator, formatter, backendReservation) {
+], function (Controller, MessageBox, MessageToast, Filter, FilterOperator, formatter) {
     "use strict";
     return Controller.extend("rlcreatereservations.controller.Worklist", {
         formatter: formatter,
-        backendReservation: backendReservation,
         onInit: function () {
             var oComponent = this.getOwnerComponent();
             var oReservationModel = oComponent.getModel("reservationModel");
             var oViewModel = oComponent.getModel("viewModel");
             if (!oReservationModel) {
-                var oModels = sap.ui.require("rlcreatereservations/model/models");
                 oComponent.setModel(
                     sap.ui.requireSync("rlcreatereservations/model/models").createReservationModel(),
                     "reservationModel"
@@ -33,20 +30,21 @@ sap.ui.define([
             var oComponent = this.getOwnerComponent();
             var oODataModel = oComponent.getModel();
             var oReservationModel = oComponent.getModel("reservationModel");
+            var oViewModel = oComponent.getModel("viewModel");
             if (!oODataModel) {
-                console.log("_loadBackendStatus: oODataModel non disponibile");
                 return;
             }
-            console.log("_loadBackendStatus: avvio lettura /vis_rich");
+            oViewModel.setProperty("/busy", true);
             oODataModel.read("/vis_rich", {
                 success: function (oData) {
-                    var aBackendEntries = (oData && oData.results) || [];
-                    console.log("_loadBackendStatus: risposta ricevuta", aBackendEntries);
-                    oReservationModel.setProperty("/reservations", aBackendEntries);
-                }.bind(this),
-                error: function (oError) {
-                    console.log("_loadBackendStatus: errore lettura /vis_rich", oError);
-                }
+                    oViewModel.setProperty("/busy", false);
+                    var aReservations = (oData && oData.results) || [];
+                    oReservationModel.setProperty("/reservations", aReservations);
+                },
+                error: function () {
+                    oViewModel.setProperty("/busy", false);
+                    MessageBox.error(this._i18n("msgGenericError"));
+                }.bind(this)
             });
         },
         _onRouteMatched: function () {
@@ -55,12 +53,12 @@ sap.ui.define([
             if (oTable) {
                 oTable.removeSelections(true);
             }
+            this._loadBackendStatus();
         },
         _resetActionButtons: function () {
             var oViewModel = this.getOwnerComponent().getModel("viewModel");
             oViewModel.setProperty("/approveEnabled", false);
             oViewModel.setProperty("/rejectEnabled", false);
-            oViewModel.setProperty("/detailEnabled", false);
             oViewModel.setProperty("/selectedReservation", null);
         },
         onSelectionChange: function (oEvent) {
@@ -73,9 +71,8 @@ sap.ui.define([
             var oCtx = oItem.getBindingContext("reservationModel");
             var oData = oCtx.getObject();
             oViewModel.setProperty("/selectedReservation", oData);
-            oViewModel.setProperty("/detailEnabled", true);
-            var bCanApprove = formatter.formatApproveButtonVisible(oData.Status, oData.ApprovalLevel);
-            var bCanReject = formatter.formatRejectButtonVisible(oData.Status);
+            var bCanApprove = formatter.formatApproveButtonVisible(oData.STATO);
+            var bCanReject = formatter.formatRejectButtonVisible(oData.STATO);
             oViewModel.setProperty("/approveEnabled", bCanApprove);
             oViewModel.setProperty("/rejectEnabled", bCanReject);
         },
@@ -86,7 +83,7 @@ sap.ui.define([
                 MessageBox.warning(this._i18n("msgNoSelection"));
                 return;
             }
-            var sRsnum = oSelected.Rsnum;
+            var sRsnum = oSelected.N_RICH;
             MessageBox.confirm(
                 this._i18n("msgApproveConfirmText", [sRsnum]),
                 {
@@ -100,33 +97,24 @@ sap.ui.define([
             );
         },
         _executeApprove: function (oSelected) {
-            var oReservationModel = this.getOwnerComponent().getModel("reservationModel");
-            var aReservations = oReservationModel.getProperty("/reservations");
-            var iIdx = aReservations.findIndex(function (r) {
-                return r.Rsnum === oSelected.Rsnum;
+            var oODataModel = this.getOwnerComponent().getModel();
+            var oViewModel = this.getOwnerComponent().getModel("viewModel");
+            var sNewStato = oSelected.STATO === "PEND_1" ? "APPR_1" : "APPR_2";
+            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oSelected.N_RICH });
+            oViewModel.setProperty("/busy", true);
+            oODataModel.update(sPath, { N_RICH: oSelected.N_RICH, STATO: sNewStato }, {
+                success: function () {
+                    oViewModel.setProperty("/busy", false);
+                    this._resetActionButtons();
+                    this.byId("worklistTable").removeSelections(true);
+                    MessageToast.show(this._i18n("msgApproveSuccess", [oSelected.N_RICH]));
+                    this._loadBackendStatus();
+                }.bind(this),
+                error: function (oError) {
+                    oViewModel.setProperty("/busy", false);
+                    MessageBox.error(this._extractErrorMessage(oError));
+                }.bind(this)
             });
-            if (iIdx === -1) {
-                return;
-            }
-            var oRes = aReservations[iIdx];
-            if (oRes.Status === "PENDING") {
-                oRes.ApprovalL1Flag = "X";
-                oRes.ApprovalL1User = "CURRENTUSER";
-                oRes.ApprovalL1Date = this._todayAbap();
-                oRes.Status = "APPROVED_L1";
-                oRes.ApprovalLevel = "L2";
-            } else if (oRes.Status === "APPROVED_L1") {
-                oRes.ApprovalL2Flag = "X";
-                oRes.ApprovalL2User = "CURRENTUSER";
-                oRes.ApprovalL2Date = this._todayAbap();
-                oRes.Status = "APPROVED_L2";
-                oRes.ApprovalLevel = "";
-                oRes.ExpectedApprover = "";
-            }
-            oReservationModel.setProperty("/reservations/" + iIdx, oRes);
-            this._resetActionButtons();
-            this.byId("worklistTable").removeSelections(true);
-            MessageToast.show(this._i18n("msgApproveSuccess", [oSelected.Rsnum]));
         },
         onReject: function () {
             var oViewModel = this.getOwnerComponent().getModel("viewModel");
@@ -165,7 +153,7 @@ sap.ui.define([
                 oViewModel.setProperty("/rejectReasonValueStateText", this._i18n("msgRejectReasonMandatory"));
                 return;
             }
-            if (sReason.length > 50) {
+            if (sReason.length > 120) {
                 oViewModel.setProperty("/rejectReasonValueState", "Error");
                 oViewModel.setProperty("/rejectReasonValueStateText", this._i18n("msgRejectReasonMaxLength"));
                 return;
@@ -175,37 +163,30 @@ sap.ui.define([
             this._oRejectDialog.close();
         },
         _executeReject: function (oSelected, sReason) {
-            var oReservationModel = this.getOwnerComponent().getModel("reservationModel");
-            var aReservations = oReservationModel.getProperty("/reservations");
-            var iIdx = aReservations.findIndex(function (r) {
-                return r.Rsnum === oSelected.Rsnum;
-            });
-            if (iIdx === -1) {
-                return;
+            var oODataModel = this.getOwnerComponent().getModel();
+            var oViewModel = this.getOwnerComponent().getModel("viewModel");
+            var sNewStato = oSelected.STATO === "PEND_1" ? "RIF_1" : "RIF_2";
+            var oPayload = { N_RICH: oSelected.N_RICH, STATO: sNewStato };
+            if (oSelected.STATO === "PEND_1") {
+                oPayload.MOTIVO_RIF = sReason;
+            } else if (oSelected.STATO === "APPR_1") {
+                oPayload.MOTIVO_RIF_II = sReason;
             }
-            var oRes = aReservations[iIdx];
-            if (oRes.Status === "PENDING") {
-                oRes.RejectionL1Flag = "X";
-                oRes.RejectionL1Reason = sReason;
-                oRes.ApprovalL1Date = this._todayAbap();
-                oRes.ApprovalL1User = "CURRENTUSER";
-            } else if (oRes.Status === "APPROVED_L1") {
-                oRes.RejectionL2Flag = "X";
-                oRes.RejectionL2Reason = sReason;
-                oRes.ApprovalL2Date = this._todayAbap();
-                oRes.ApprovalL2User = "CURRENTUSER";
-            }
-            oRes.Status = "REJECTED";
-            oRes.ApprovalLevel = "";
-            oRes.ExpectedApprover = "";
-            oRes.Items = oRes.Items.map(function (oItem) {
-                oItem.DeletionFlag = "X";
-                return oItem;
+            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oSelected.N_RICH });
+            oViewModel.setProperty("/busy", true);
+            oODataModel.update(sPath, oPayload, {
+                success: function () {
+                    oViewModel.setProperty("/busy", false);
+                    this._resetActionButtons();
+                    this.byId("worklistTable").removeSelections(true);
+                    MessageToast.show(this._i18n("msgRejectSuccess", [oSelected.N_RICH]));
+                    this._loadBackendStatus();
+                }.bind(this),
+                error: function (oError) {
+                    oViewModel.setProperty("/busy", false);
+                    MessageBox.error(this._extractErrorMessage(oError));
+                }.bind(this)
             });
-            oReservationModel.setProperty("/reservations/" + iIdx, oRes);
-            this._resetActionButtons();
-            this.byId("worklistTable").removeSelections(true);
-            MessageToast.show(this._i18n("msgRejectSuccess", [oSelected.Rsnum]));
         },
         onCancelReject: function () {
             this._oRejectDialog.close();
@@ -224,7 +205,7 @@ sap.ui.define([
                 return;
             }
             this.getOwnerComponent().getRouter().navTo("RouteDetail", {
-                Reservation: oSelected.Rsnum
+                Reservation: oSelected.N_RICH
             });
         },
         onFilterLiveChange: function () {
@@ -232,41 +213,20 @@ sap.ui.define([
             var oTable = this.byId("worklistTable");
             var oBinding = oTable.getBinding("items");
             var aFilters = [];
-            var sGjahr = (oViewModel.getProperty("/filterGjahr") || "").trim();
-            var sKostl = (oViewModel.getProperty("/filterKostl") || "").trim();
-            var sStatus = oViewModel.getProperty("/filterStatus") || "";
-            var sLevel = oViewModel.getProperty("/filterLevel") || "";
             var sRsnum = (oViewModel.getProperty("/filterRsnum") || "").trim();
-            if (sGjahr) {
-                aFilters.push(new Filter("Gjahr", FilterOperator.Contains, sGjahr));
-            }
-            if (sKostl) {
-                aFilters.push(new Filter({
-                    filters: [
-                        new Filter("Kostl", FilterOperator.Contains, sKostl),
-                        new Filter("KostlDesc", FilterOperator.Contains, sKostl)
-                    ],
-                    and: false
-                }));
+            var sStatus = oViewModel.getProperty("/filterStatus") || "";
+            if (sRsnum) {
+                aFilters.push(new Filter("N_RICH", FilterOperator.Contains, sRsnum));
             }
             if (sStatus) {
-                aFilters.push(new Filter("Status", FilterOperator.EQ, sStatus));
-            }
-            if (sLevel) {
-                aFilters.push(new Filter("ApprovalLevel", FilterOperator.EQ, sLevel));
-            }
-            if (sRsnum) {
-                aFilters.push(new Filter("Rsnum", FilterOperator.Contains, sRsnum));
+                aFilters.push(new Filter("STATO", FilterOperator.EQ, sStatus));
             }
             oBinding.filter(aFilters.length > 0 ? new Filter({ filters: aFilters, and: true }) : []);
         },
         onResetFilters: function () {
             var oViewModel = this.getOwnerComponent().getModel("viewModel");
-            oViewModel.setProperty("/filterGjahr", "");
-            oViewModel.setProperty("/filterKostl", "");
-            oViewModel.setProperty("/filterStatus", "");
-            oViewModel.setProperty("/filterLevel", "");
             oViewModel.setProperty("/filterRsnum", "");
+            oViewModel.setProperty("/filterStatus", "");
             var oBinding = this.byId("worklistTable").getBinding("items");
             oBinding.filter([]);
         },
@@ -275,109 +235,6 @@ sap.ui.define([
                 .getModel("i18n")
                 .getResourceBundle()
                 .getText(sKey, aParams);
-        },
-        _todayAbap: function () {
-            var d = new Date();
-            var sY = d.getFullYear().toString();
-            var sM = String(d.getMonth() + 1).padStart(2, "0");
-            var sD = String(d.getDate()).padStart(2, "0");
-            return sY + sM + sD;
-        },
-        _executeApprove: function (oSelected) {
-            var oODataModel = this.getOwnerComponent().getModel();
-            var oReservationModel = this.getOwnerComponent().getModel("reservationModel");
-            var oViewModel = this.getOwnerComponent().getModel("viewModel");
-            var sNewStato = oSelected.Status === "PENDING" ? "APPR_1" : "APPR_2";
-            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oSelected.Rsnum });
-            oViewModel.setProperty("/busy", true);
-            oODataModel.update(sPath, { N_RICH: oSelected.Rsnum, STATO: sNewStato }, {
-                success: function () {
-                    oViewModel.setProperty("/busy", false);
-                    var aReservations = oReservationModel.getProperty("/reservations");
-                    var iIdx = aReservations.findIndex(function (r) {
-                        return r.Rsnum === oSelected.Rsnum;
-                    });
-                    if (iIdx === -1) {
-                        return;
-                    }
-                    var oRes = aReservations[iIdx];
-                    if (oRes.Status === "PENDING") {
-                        oRes.ApprovalL1Flag = "X";
-                        oRes.ApprovalL1User = "CURRENTUSER";
-                        oRes.ApprovalL1Date = this._todayAbap();
-                        oRes.Status = "APPROVED_L1";
-                        oRes.ApprovalLevel = "L2";
-                    } else if (oRes.Status === "APPROVED_L1") {
-                        oRes.ApprovalL2Flag = "X";
-                        oRes.ApprovalL2User = "CURRENTUSER";
-                        oRes.ApprovalL2Date = this._todayAbap();
-                        oRes.Status = "APPROVED_L2";
-                        oRes.ApprovalLevel = "";
-                        oRes.ExpectedApprover = "";
-                    }
-                    oReservationModel.setProperty("/reservations/" + iIdx, oRes);
-                    this._resetActionButtons();
-                    this.byId("worklistTable").removeSelections(true);
-                    MessageToast.show(this._i18n("msgApproveSuccess", [oSelected.Rsnum]));
-                }.bind(this),
-                error: function (oError) {
-                    oViewModel.setProperty("/busy", false);
-                    MessageBox.error(this._extractErrorMessage(oError));
-                }.bind(this)
-            });
-        },
-        _executeReject: function (oSelected, sReason) {
-            var oODataModel = this.getOwnerComponent().getModel();
-            var oReservationModel = this.getOwnerComponent().getModel("reservationModel");
-            var oViewModel = this.getOwnerComponent().getModel("viewModel");
-            var sNewStato = oSelected.Status === "PENDING" ? "RIF_1" : "RIF_2";
-            var oPayload = { N_RICH: oSelected.Rsnum, STATO: sNewStato };
-            if (oSelected.Status === "PENDING") {
-                oPayload.MOTIVO_RIF = sReason;
-            } else if (oSelected.Status === "APPROVED_L1") {
-                oPayload.MOTIVO_RIF_II = sReason;
-            }
-            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oSelected.Rsnum });
-            oViewModel.setProperty("/busy", true);
-            oODataModel.update(sPath, oPayload, {
-                success: function () {
-                    oViewModel.setProperty("/busy", false);
-                    var aReservations = oReservationModel.getProperty("/reservations");
-                    var iIdx = aReservations.findIndex(function (r) {
-                        return r.Rsnum === oSelected.Rsnum;
-                    });
-                    if (iIdx === -1) {
-                        return;
-                    }
-                    var oRes = aReservations[iIdx];
-                    if (oRes.Status === "PENDING") {
-                        oRes.RejectionL1Flag = "X";
-                        oRes.RejectionL1Reason = sReason;
-                        oRes.ApprovalL1Date = this._todayAbap();
-                        oRes.ApprovalL1User = "CURRENTUSER";
-                    } else if (oRes.Status === "APPROVED_L1") {
-                        oRes.RejectionL2Flag = "X";
-                        oRes.RejectionL2Reason = sReason;
-                        oRes.ApprovalL2Date = this._todayAbap();
-                        oRes.ApprovalL2User = "CURRENTUSER";
-                    }
-                    oRes.Status = "REJECTED";
-                    oRes.ApprovalLevel = "";
-                    oRes.ExpectedApprover = "";
-                    oRes.Items = oRes.Items.map(function (oItem) {
-                        oItem.DeletionFlag = "X";
-                        return oItem;
-                    });
-                    oReservationModel.setProperty("/reservations/" + iIdx, oRes);
-                    this._resetActionButtons();
-                    this.byId("worklistTable").removeSelections(true);
-                    MessageToast.show(this._i18n("msgRejectSuccess", [oSelected.Rsnum]));
-                }.bind(this),
-                error: function (oError) {
-                    oViewModel.setProperty("/busy", false);
-                    MessageBox.error(this._extractErrorMessage(oError));
-                }.bind(this)
-            });
         },
         _extractErrorMessage: function (oError) {
             try {
