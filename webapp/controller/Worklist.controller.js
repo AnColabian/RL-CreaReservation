@@ -34,25 +34,20 @@ sap.ui.define([
             var oODataModel = oComponent.getModel();
             var oReservationModel = oComponent.getModel("reservationModel");
             if (!oODataModel) {
+                console.log("_loadBackendStatus: oODataModel non disponibile");
                 return;
             }
-            backendReservation.readBackendStatus(
-                oODataModel,
-                function (aBackendEntries) {
-                    var aReservations = oReservationModel.getProperty("/reservations");
-                    aBackendEntries.forEach(function (oEntry) {
-                        var oFound = aReservations.find(function (r) {
-                            return r.Rsnum === oEntry.N_RICH;
-                        });
-                        if (oFound) {
-                            backendReservation.mergeEntry(oFound, oEntry);
-                        }
-                    });
-                    oReservationModel.setProperty("/reservations", aReservations);
-                },
-                function () {
+            console.log("_loadBackendStatus: avvio lettura /vis_rich");
+            oODataModel.read("/vis_rich", {
+                success: function (oData) {
+                    var aBackendEntries = (oData && oData.results) || [];
+                    console.log("_loadBackendStatus: risposta ricevuta", aBackendEntries);
+                    oReservationModel.setProperty("/reservations", aBackendEntries);
+                }.bind(this),
+                error: function (oError) {
+                    console.log("_loadBackendStatus: errore lettura /vis_rich", oError);
                 }
-            );
+            });
         },
         _onRouteMatched: function () {
             this._resetActionButtons();
@@ -287,6 +282,110 @@ sap.ui.define([
             var sM = String(d.getMonth() + 1).padStart(2, "0");
             var sD = String(d.getDate()).padStart(2, "0");
             return sY + sM + sD;
+        },
+        _executeApprove: function (oSelected) {
+            var oODataModel = this.getOwnerComponent().getModel();
+            var oReservationModel = this.getOwnerComponent().getModel("reservationModel");
+            var oViewModel = this.getOwnerComponent().getModel("viewModel");
+            var sNewStato = oSelected.Status === "PENDING" ? "APPR_1" : "APPR_2";
+            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oSelected.Rsnum });
+            oViewModel.setProperty("/busy", true);
+            oODataModel.update(sPath, { N_RICH: oSelected.Rsnum, STATO: sNewStato }, {
+                success: function () {
+                    oViewModel.setProperty("/busy", false);
+                    var aReservations = oReservationModel.getProperty("/reservations");
+                    var iIdx = aReservations.findIndex(function (r) {
+                        return r.Rsnum === oSelected.Rsnum;
+                    });
+                    if (iIdx === -1) {
+                        return;
+                    }
+                    var oRes = aReservations[iIdx];
+                    if (oRes.Status === "PENDING") {
+                        oRes.ApprovalL1Flag = "X";
+                        oRes.ApprovalL1User = "CURRENTUSER";
+                        oRes.ApprovalL1Date = this._todayAbap();
+                        oRes.Status = "APPROVED_L1";
+                        oRes.ApprovalLevel = "L2";
+                    } else if (oRes.Status === "APPROVED_L1") {
+                        oRes.ApprovalL2Flag = "X";
+                        oRes.ApprovalL2User = "CURRENTUSER";
+                        oRes.ApprovalL2Date = this._todayAbap();
+                        oRes.Status = "APPROVED_L2";
+                        oRes.ApprovalLevel = "";
+                        oRes.ExpectedApprover = "";
+                    }
+                    oReservationModel.setProperty("/reservations/" + iIdx, oRes);
+                    this._resetActionButtons();
+                    this.byId("worklistTable").removeSelections(true);
+                    MessageToast.show(this._i18n("msgApproveSuccess", [oSelected.Rsnum]));
+                }.bind(this),
+                error: function (oError) {
+                    oViewModel.setProperty("/busy", false);
+                    MessageBox.error(this._extractErrorMessage(oError));
+                }.bind(this)
+            });
+        },
+        _executeReject: function (oSelected, sReason) {
+            var oODataModel = this.getOwnerComponent().getModel();
+            var oReservationModel = this.getOwnerComponent().getModel("reservationModel");
+            var oViewModel = this.getOwnerComponent().getModel("viewModel");
+            var sNewStato = oSelected.Status === "PENDING" ? "RIF_1" : "RIF_2";
+            var oPayload = { N_RICH: oSelected.Rsnum, STATO: sNewStato };
+            if (oSelected.Status === "PENDING") {
+                oPayload.MOTIVO_RIF = sReason;
+            } else if (oSelected.Status === "APPROVED_L1") {
+                oPayload.MOTIVO_RIF_II = sReason;
+            }
+            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oSelected.Rsnum });
+            oViewModel.setProperty("/busy", true);
+            oODataModel.update(sPath, oPayload, {
+                success: function () {
+                    oViewModel.setProperty("/busy", false);
+                    var aReservations = oReservationModel.getProperty("/reservations");
+                    var iIdx = aReservations.findIndex(function (r) {
+                        return r.Rsnum === oSelected.Rsnum;
+                    });
+                    if (iIdx === -1) {
+                        return;
+                    }
+                    var oRes = aReservations[iIdx];
+                    if (oRes.Status === "PENDING") {
+                        oRes.RejectionL1Flag = "X";
+                        oRes.RejectionL1Reason = sReason;
+                        oRes.ApprovalL1Date = this._todayAbap();
+                        oRes.ApprovalL1User = "CURRENTUSER";
+                    } else if (oRes.Status === "APPROVED_L1") {
+                        oRes.RejectionL2Flag = "X";
+                        oRes.RejectionL2Reason = sReason;
+                        oRes.ApprovalL2Date = this._todayAbap();
+                        oRes.ApprovalL2User = "CURRENTUSER";
+                    }
+                    oRes.Status = "REJECTED";
+                    oRes.ApprovalLevel = "";
+                    oRes.ExpectedApprover = "";
+                    oRes.Items = oRes.Items.map(function (oItem) {
+                        oItem.DeletionFlag = "X";
+                        return oItem;
+                    });
+                    oReservationModel.setProperty("/reservations/" + iIdx, oRes);
+                    this._resetActionButtons();
+                    this.byId("worklistTable").removeSelections(true);
+                    MessageToast.show(this._i18n("msgRejectSuccess", [oSelected.Rsnum]));
+                }.bind(this),
+                error: function (oError) {
+                    oViewModel.setProperty("/busy", false);
+                    MessageBox.error(this._extractErrorMessage(oError));
+                }.bind(this)
+            });
+        },
+        _extractErrorMessage: function (oError) {
+            try {
+                var oBody = JSON.parse(oError.responseText);
+                return oBody.error.message.value;
+            } catch (e) {
+                return this._i18n("msgGenericError");
+            }
         }
     });
 });
