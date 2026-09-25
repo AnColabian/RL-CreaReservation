@@ -100,10 +100,9 @@ sap.ui.define([
             var oODataModel = this.getOwnerComponent().getModel();
             var oViewModel = this.getOwnerComponent().getModel("viewModel");
             var sNewStato = oSelected.STATO === "PEND_1" ? "APPR_1" : "APPR_2";
-            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oSelected.N_RICH });
             oViewModel.setProperty("/busy", true);
-            oODataModel.update(sPath, { N_RICH: oSelected.N_RICH, STATO: sNewStato }, {
-                success: function () {
+            oODataModel.create("/vis_rich", { N_RICH: oSelected.N_RICH, STATO: sNewStato }, {
+                success: function (response) {
                     oViewModel.setProperty("/busy", false);
                     this._resetActionButtons();
                     this.byId("worklistTable").removeSelections(true);
@@ -172,10 +171,9 @@ sap.ui.define([
             } else if (oSelected.STATO === "APPR_1") {
                 oPayload.MOTIVO_RIF_II = sReason;
             }
-            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oSelected.N_RICH });
             oViewModel.setProperty("/busy", true);
-            oODataModel.update(sPath, oPayload, {
-                success: function () {
+            oODataModel.create("/vis_rich", oPayload, {
+                success: function (response) {
                     oViewModel.setProperty("/busy", false);
                     this._resetActionButtons();
                     this.byId("worklistTable").removeSelections(true);

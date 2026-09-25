@@ -66,6 +66,15 @@
                         <Text text="{i18n>lblReservation}" />
                     </Column>
                     <Column minScreenWidth="Small" demandPopin="false">
+                        <Text text="{i18n>lblCostCenter}" />
+                    </Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="{i18n>lblRsdat}" />
+                    </Column>
+                    <Column minScreenWidth="Tablet" demandPopin="true">
+                        <Text text="{i18n>lblRequester}" />
+                    </Column>
+                    <Column minScreenWidth="Small" demandPopin="false">
                         <Text text="{i18n>lblStatus}" />
                     </Column>
                     <Column minScreenWidth="Tablet" demandPopin="true">
@@ -85,6 +94,12 @@
                     <ColumnListItem type="Navigation" press=".onNavToDetail">
                         <cells>
                             <ObjectIdentifier title="{reservationModel>N_RICH}" />
+                            <Text text="{reservationModel>KOSTL}" />
+                            <Text text="{
+                    path: 'reservationModel>RSDAT',
+                    formatter: '.formatter.formatIsoDate'
+                }" />
+                            <Text text="{reservationModel>USNAM}" />
                             <ObjectStatus text="{
                         path: 'reservationModel>STATO',
                         formatter: '.formatter.formatStatusText'

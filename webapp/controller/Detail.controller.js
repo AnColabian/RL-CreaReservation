@@ -58,10 +58,9 @@ sap.ui.define([
             var oODataModel = this.getOwnerComponent().getModel();
             var oViewModel = this.getOwnerComponent().getModel("viewModel");
             var sNewStato = oData.STATO === "PEND_1" ? "APPR_1" : "APPR_2";
-            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oData.N_RICH });
             oViewModel.setProperty("/busy", true);
-            oODataModel.update(sPath, { N_RICH: oData.N_RICH, STATO: sNewStato }, {
-                success: function () {
+            oODataModel.create("/vis_rich", { N_RICH: oData.N_RICH, STATO: sNewStato }, {
+                success: function (response) {
                     oViewModel.setProperty("/busy", false);
                     MessageToast.show(this._i18n("msgApproveSuccess", [oData.N_RICH]));
                     this.onNavBack();
@@ -122,10 +121,9 @@ sap.ui.define([
             } else if (oData.STATO === "APPR_1") {
                 oPayload.MOTIVO_RIF_II = sReason;
             }
-            var sPath = oODataModel.createKey("/vis_rich", { N_RICH: oData.N_RICH });
             oViewModel.setProperty("/busy", true);
-            oODataModel.update(sPath, oPayload, {
-                success: function () {
+            oODataModel.create("/vis_rich", oPayload, {
+                success: function (response) {
                     oViewModel.setProperty("/busy", false);
                     MessageToast.show(this._i18n("msgRejectSuccess", [oData.N_RICH]));
                     this.onNavBack();
